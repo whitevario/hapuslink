@@ -206,10 +206,22 @@ if st.session_state.get("reset_trigger", False):
 # ---------- URL folder di Google Drive / Shared Drive ----------
 folder_url = "https://drive.google.com/drive/folders/1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd"
 
-if st.button("Buka Folder"):
-    st.markdown(f"[Klik di sini jika folder tidak terbuka]({folder_url})", unsafe_allow_html=True)
-    # Membuka di tab baru
-    st.experimental_set_query_params(open=folder_url)
+st.markdown(
+    f"""
+    <a href="{folder_url}" target="_blank">
+        <button style="
+            background-color: #4CAF50; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;">
+        📁 Buka Folder Shared Drive
+        </button>
+    </a>
+    """,
+    unsafe_allow_html=True
     
 # ---------- Kredit tetap di kiri bawah ----------
 st.markdown(
@@ -235,6 +247,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
