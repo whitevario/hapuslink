@@ -4,7 +4,6 @@ import fitz  # PyMuPDF
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
 
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
@@ -165,10 +164,20 @@ if uploaded_files and st.button("🚀 Proses & Debug"):
     for file in uploaded_files:
         st.write(f"### 🔎 Debug {file.name}")
 
-        perwakilan = list(folder_map.keys())[0]
-        sekolah_full = folder_map[perwakilan][0]
+        # Dropdown pilih perwakilan & sekolah
+        perwakilan = st.selectbox(
+            f"Perwakilan untuk {file.name}",
+            list(folder_map.keys()),
+            key=f"debug_perwakilan_{file.name}"
+        )
+        sekolah_full = st.selectbox(
+            f"Sekolah untuk {file.name}",
+            folder_map[perwakilan],
+            key=f"debug_sekolah_{file.name}"
+        )
         sekolah_clean = sekolah_full.split(". ", 1)[-1]
 
+        # Cek folder bertingkat
         perwakilan_obj = find_folder(service, PARENT_FOLDER_ID, perwakilan, "Root Drive")
         sekolah_obj = find_folder(service, perwakilan_obj["id"], sekolah_full, perwakilan) if perwakilan_obj else None
         pencairan_name = f"PENCAIRAN KASIR (DISPOSISI, BKK, KWITANSI) {sekolah_clean}"
