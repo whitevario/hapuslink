@@ -151,7 +151,6 @@ if st.session_state.credentials:
         fields="files(id, name, webViewLink, createdTime)",
         supportsAllDrives=True,
         includeItemsFromAllDrives=True,
-        corpora="drive"
     ).execute()
 
     items = results.get("files", [])
@@ -160,3 +159,4 @@ if st.session_state.credentials:
     else:
         for file in items:
             st.markdown(f"- [{file['name']}]({file['webViewLink']}) (dibuat {file['createdTime']})")
+
