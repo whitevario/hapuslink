@@ -1,10 +1,7 @@
 import streamlit as st
-try:
-    import fitz  # alias ke pymupdf
-except ImportError:
-    import pymupdf as fitz
 import io
-import json
+import fitz  # PyMuPDF
+from urllib.parse import urlparse, parse_qs
 
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
@@ -16,7 +13,6 @@ from googleapiclient.http import MediaIoBaseUpload
 # -----------------------------
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
-# Ambil konfigurasi dari st.secrets
 client_config = {
     "web": {
         "client_id": st.secrets["google_oauth"]["client_id"],
@@ -28,10 +24,10 @@ client_config = {
     }
 }
 
-# Ganti dengan Folder ID Shared Drive tujuan
+# Folder Shared Drive tujuan
 PARENT_FOLDER_ID = "0AOmec_wdt9z-Uk9PVA"
 
-# Redirect URI sesuai app di Streamlit Cloud
+# Redirect URI Streamlit Cloud
 REDIRECT_URI = "https://hapuslink.streamlit.app/"
 
 st.set_page_config(page_title="Hapus Link Disposisi", page_icon="📝")
@@ -42,6 +38,30 @@ st.title("📝 Hapus Hyperlink 'Link Disposisi' dan Upload ke Shared Drive")
 # -----------------------------
 if "credentials" not in st.session_state:
     st.session_state.credentials = None
+
+# cek apakah ada code callback dari Google
+query_params = st.experimental_get_query_params()
+if "code" in query_params and st.session_state.credentials is None:
+    code = query_params["code"][0]
+
+    flow = Flow.from_client_config(
+        client_config,
+        scopes=SCOPES,
+        redirect_uri=REDIRECT_URI,
+    )
+    flow.fetch_token(code=code)
+
+    creds = flow.credentials
+    st.session_state.credentials = {
+        "token": creds.token,
+        "refresh_token": creds.refresh_token,
+        "id_token": creds.id_token,
+        "scopes": creds.scopes,
+        "client_id": creds.client_id,
+        "client_secret": creds.client_secret,
+        "token_uri": creds.token_uri,
+    }
+    st.experimental_rerun()
 
 if st.session_state.credentials is None:
     flow = Flow.from_client_config(
@@ -89,22 +109,17 @@ if uploaded_files and st.session_state.credentials:
                             deleted = True
                             break
 
-        # Simpan hasil ke buffer
+        # simpan hasil ke buffer
         output_buffer = io.BytesIO()
         doc.save(output_buffer)
         doc.close()
         output_buffer.seek(0)
 
-        # Upload ke Shared Drive
-        file_metadata = {
-            "name": uploaded_file.name,
-            "parents": [PARENT_FOLDER_ID]
-        }
+        # upload ke Shared Drive
+        file_metadata = {"name": uploaded_file.name, "parents": [PARENT_FOLDER_ID]}
         media = MediaIoBaseUpload(output_buffer, mimetype="application/pdf")
         service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields="id"
+            body=file_metadata, media_body=media, fields="id"
         ).execute()
 
         if deleted:
@@ -140,4 +155,3 @@ if st.session_state.credentials:
     else:
         for file in items:
             st.markdown(f"- [{file['name']}]({file['webViewLink']}) (dibuat {file['createdTime']})")
-
