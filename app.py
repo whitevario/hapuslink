@@ -84,7 +84,6 @@ if uploaded_files and st.session_state.credentials:
     creds = Credentials.from_authorized_user_info(st.session_state.credentials)
     service = build("drive", "v3", credentials=creds)
 
-    target_text = "Link Disposisi".lower()
     success, not_found = 0, 0
 
     for uploaded_file in uploaded_files:
@@ -93,20 +92,21 @@ if uploaded_files and st.session_state.credentials:
         deleted = False
 
         for page in doc:
-            words = page.get_text("words")
-            annots = page.annots()
-            if annots:
-                for annot in annots:
-                    if annot.type[0] == 1:  # link annotation
-                        rect = annot.rect
-                        teks_link = " ".join(
-                            w[4] for w in words if fitz.Rect(w[:4]).intersects(rect)
-                        )
-                        if "link disposisi" in teks_link.lower():
-                            page.delete_annot(annot)
-                            page.draw_rect(rect, color=(1, 1, 1), fill=(1, 1, 1))
-                            deleted = True
-                            break
+            # cari teks "Link Disposisi" (case-insensitive)
+            rects = page.search_for("Link Disposisi", quads=False)
+            if rects:
+                for rect in rects:
+                    # hapus teks (isi area dengan putih)
+                    page.add_redact_annot(rect, fill=(1, 1, 1))
+                    page.apply_redactions()
+
+                    # hapus link annotation di area itu
+                    annots = page.annots()
+                    if annots:
+                        for annot in annots:
+                            if rect.intersects(annot.rect):
+                                page.delete_annot(annot)
+                deleted = True
 
         # simpan hasil ke buffer
         output_buffer = io.BytesIO()
@@ -114,14 +114,14 @@ if uploaded_files and st.session_state.credentials:
         doc.close()
         output_buffer.seek(0)
 
-        # upload ke Shared Drive (perbaikan: supportsAllDrives=True)
+        # upload ke Shared Drive
         file_metadata = {"name": uploaded_file.name, "parents": [PARENT_FOLDER_ID]}
         media = MediaIoBaseUpload(output_buffer, mimetype="application/pdf")
         service.files().create(
             body=file_metadata,
             media_body=media,
             fields="id",
-            supportsAllDrives=True  # <---- WAJIB untuk Shared Drive
+            supportsAllDrives=True
         ).execute()
 
         if deleted:
@@ -149,7 +149,7 @@ if st.session_state.credentials:
         orderBy="createdTime desc",
         pageSize=10,
         fields="files(id, name, webViewLink, createdTime)",
-        supportsAllDrives=True  # <---- tambahkan juga di list
+        supportsAllDrives=True
     ).execute()
 
     items = results.get("files", [])
@@ -158,4 +158,3 @@ if st.session_state.credentials:
     else:
         for file in items:
             st.markdown(f"- [{file['name']}]({file['webViewLink']}) (dibuat {file['createdTime']})")
-
