@@ -4,6 +4,7 @@ import fitz  # PyMuPDF
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
@@ -18,12 +19,11 @@ client_config = {
     }
 }
 
-# Ganti dengan folder ID "TEMPAT HAPUS LINK DISPOSISI"
 PARENT_FOLDER_ID = "1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd"
 REDIRECT_URI = "https://hapuslink.streamlit.app/"
 
-st.set_page_config(page_title="Hapus Link Disposisi v6 Debug", page_icon="🐞")
-st.title("🐞 Debug Hapus Link Disposisi (Shared Drive Fix)")
+st.set_page_config(page_title="Hapus Link Disposisi v5 Debug", page_icon="🐞")
+st.title("🐞 Debug Hapus Link Disposisi")
 
 # -----------------------------
 # Parse daftar nama folder
@@ -67,25 +67,21 @@ def parse_folder_file(file_path="daftar nama folder.txt"):
 folder_map, bulan_list, periode_list = parse_folder_file("daftar nama folder.txt")
 
 # -----------------------------
-# Helper: list isi folder
+# Helper: fuzzy search + debug list
 # -----------------------------
 def list_children(service, parent_id, title="Isi Folder"):
     children = service.files().list(
-        q=f"'{parent_id}' in parents and trashed=false",
-        corpora="allDrives",
-        fields="files(id, name, mimeType)",
+        q=f"'{parent_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+        fields="files(id, name)",
         supportsAllDrives=True,
         includeItemsFromAllDrives=True
     ).execute()
     files = children.get("files", [])
     st.write(f"📂 {title}:")
     for f in files:
-        st.write(f"- {f['name']} ({f['mimeType']})")
+        st.write(f"- {f['name']}")
     return files
 
-# -----------------------------
-# Helper: cari folder fuzzy
-# -----------------------------
 def find_folder(service, parent_id, keyword, title="Cari Folder"):
     if not parent_id:
         return None
@@ -97,7 +93,6 @@ def find_folder(service, parent_id, keyword, title="Cari Folder"):
     )
     results = service.files().list(
         q=query,
-        corpora="allDrives",
         fields="files(id, name, webViewLink)",
         supportsAllDrives=True,
         includeItemsFromAllDrives=True
@@ -146,38 +141,28 @@ else:
     st.success("✅ Sudah login ke Google Drive")
 
 # -----------------------------
-# Step 2: Debug cek folder
+# Step 2: Upload
 # -----------------------------
 bulan = st.selectbox("Pilih Bulan", bulan_list)
 periode = st.radio("Pilih Periode", periode_list)
 
 uploaded_files = st.file_uploader(
-    "Upload file PDF (dummy untuk debug)",
+    "Upload file PDF",
     type="pdf",
     accept_multiple_files=True
 )
 
-if uploaded_files and st.button("🚀 Proses & Debug"):
+if uploaded_files and st.button("🚀 Proses & Debug Upload"):
     creds = Credentials.from_authorized_user_info(st.session_state.credentials)
     service = build("drive", "v3", credentials=creds)
 
     for file in uploaded_files:
         st.write(f"### 🔎 Debug {file.name}")
-
-        # Dropdown pilih perwakilan & sekolah
-        perwakilan = st.selectbox(
-            f"Perwakilan untuk {file.name}",
-            list(folder_map.keys()),
-            key=f"debug_perwakilan_{file.name}"
-        )
-        sekolah_full = st.selectbox(
-            f"Sekolah untuk {file.name}",
-            folder_map[perwakilan],
-            key=f"debug_sekolah_{file.name}"
-        )
+        # mapping pilihan contoh: ambil default saja
+        perwakilan = list(folder_map.keys())[0]
+        sekolah_full = folder_map[perwakilan][0]
         sekolah_clean = sekolah_full.split(". ", 1)[-1]
 
-        # Cek folder bertingkat
         perwakilan_obj = find_folder(service, PARENT_FOLDER_ID, perwakilan, "Root Drive")
         sekolah_obj = find_folder(service, perwakilan_obj["id"], sekolah_full, perwakilan) if perwakilan_obj else None
         pencairan_name = f"PENCAIRAN KASIR (DISPOSISI, BKK, KWITANSI) {sekolah_clean}"
