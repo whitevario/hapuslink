@@ -1,22 +1,17 @@
 import streamlit as st
 import fitz  # PyMuPDF
 import os
-from streamlit_file_browser import st_file_browser
 
 st.title("📝 Hapus Hyperlink 'Link Disposisi' dari PDF")
 
 # ------------------------------
-# PILIH FOLDER OUTPUT
+# PILIH FOLDER OUTPUT (TEXT INPUT)
 # ------------------------------
-st.write("### 📂 Pilih Folder Output")
-selected_folder = st_file_browser(path=".", show_files=False, key="folder_browser")
+default_folder = "pdf_output"
+OUTPUT_FOLDER = st.text_input("📂 Masukkan nama folder output:", default_folder)
 
-if selected_folder:
-    OUTPUT_FOLDER = selected_folder
-else:
-    OUTPUT_FOLDER = "pdf_output"
-
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+if OUTPUT_FOLDER:
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 # Info jumlah file di folder output
 output_files = [f for f in os.listdir(OUTPUT_FOLDER) if f.lower().endswith(".pdf")]
