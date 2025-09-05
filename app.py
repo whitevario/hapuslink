@@ -80,7 +80,17 @@ else:
 # -----------------------------
 # Step 2: Upload File PDF
 # -----------------------------
-uploaded_files = st.file_uploader("Upload file PDF", type="pdf", accept_multiple_files=True)
+if "uploader_key" not in st.session_state:
+    st.session_state.uploader_key = 0
+
+if "uploader_key" not in st.session_state:
+    st.session_state.uploader_key = 0
+
+uploaded_files = st.file_uploader(
+    "Upload file PDF",
+    type="pdf",
+    accept_multiple_files=True,
+    key=st.session_state.uploader_key
 
 if uploaded_files and st.session_state.credentials:
     creds = Credentials.from_authorized_user_info(st.session_state.credentials)
@@ -167,12 +177,14 @@ if st.session_state.credentials:
             st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
 
 # -----------------------------
-# Step 4: Tombol Reset Upload
+# Step 4: Reset Upload
 # -----------------------------
 if st.button("❌ Reset Upload"):
-    if "file_uploader" in st.session_state:
-        del st.session_state["file_uploader"]  # bersihkan kotak upload
+    st.session_state.uploader_key += 1  # reset uploader
+    if "upload_log" in st.session_state:
+        st.session_state.upload_log = []  # bersihkan log
     st.rerun()
+
 
 
 
