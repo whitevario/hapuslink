@@ -22,14 +22,11 @@ st.info(f"📂 Folder output aktif: `{OUTPUT_FOLDER}` (isi: {len(output_files)} 
 # ------------------------------
 if "results" not in st.session_state:
     st.session_state["results"] = []
-if "uploaded" not in st.session_state:
-    st.session_state["uploaded"] = None
 
 # Tombol reset tampilan
 if st.button("🧹 Bersihkan Tampilan & Upload"):
     st.session_state["results"] = []
-    st.session_state["uploaded"] = None
-    st.success("✅ Tampilan dan daftar upload direset. File di folder output tetap aman.")
+    st.success("✅ Tampilan upload & hasil diproses direset. File di folder output tetap aman.")
     st.stop()
 
 # ------------------------------
@@ -38,8 +35,7 @@ if st.button("🧹 Bersihkan Tampilan & Upload"):
 uploaded_files = st.file_uploader(
     "Upload file PDF", 
     type="pdf", 
-    accept_multiple_files=True, 
-    key="uploaded"
+    accept_multiple_files=True
 )
 
 # ------------------------------
