@@ -25,7 +25,7 @@ client_config = {
 }
 
 # Folder Shared Drive tujuan
-PARENT_FOLDER_ID = "0AOmec_wdt9z-Uk9PVA"
+PARENT_FOLDER_ID = "1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd"
 
 # Redirect URI Streamlit Cloud
 REDIRECT_URI = "https://hapuslink.streamlit.app/"
@@ -158,3 +158,4 @@ if st.session_state.credentials:
     else:
         for file in items:
             st.markdown(f"- [{file['name']}]({file['webViewLink']}) (dibuat {file['createdTime']})")
+
