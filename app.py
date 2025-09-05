@@ -161,9 +161,11 @@ if st.session_state.credentials:
     else:
         for idx, file in enumerate(items, start=1):
             created_dt = datetime.fromisoformat(file['createdTime'].replace("Z", "+00:00"))
+            # Tambahkan offset UTC+7 (WIB)
             local_dt = created_dt.astimezone(timezone(timedelta(hours=7)))
-            formatted_date = created_dt.strftime("%d %b %Y, %H:%M")
+            formatted_date = local_dt.strftime("%d %b %Y, %H:%M")
             st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
+
 
 
 
