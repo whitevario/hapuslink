@@ -2,7 +2,7 @@ import streamlit as st
 import io
 import fitz  # PyMuPDF
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 
 from google.oauth2.credentials import Credentials
@@ -161,8 +161,10 @@ if st.session_state.credentials:
     else:
         for idx, file in enumerate(items, start=1):
             created_dt = datetime.fromisoformat(file['createdTime'].replace("Z", "+00:00"))
+            local_dt = created_dt.astimezone(timezone(timedelta(hours=7)))
             formatted_date = created_dt.strftime("%d %b %Y, %H:%M")
             st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
+
 
 
 
