@@ -2,6 +2,8 @@ import streamlit as st
 import io
 import fitz  # PyMuPDF
 from urllib.parse import urlparse, parse_qs
+from datetime import datetime
+
 
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
@@ -157,6 +159,10 @@ if st.session_state.credentials:
     if not items:
         st.info("Belum ada file di folder ini.")
     else:
-        for file in items:
-            st.markdown(f"- [{file['name']}]({file['webViewLink']}) (dibuat {file['createdTime']})")
+        for idx, file in enumerate(items, start=1):
+            created_dt = datetime.fromisoformat(file['createdTime'].replace("Z", "+00:00"))
+            formatted_date = created_dt.strftime("%d %b %Y, %H:%M")
+            st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
+
+
 
