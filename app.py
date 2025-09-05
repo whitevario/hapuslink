@@ -81,6 +81,8 @@ else:
 # -----------------------------
 if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
+if "processed_files" not in st.session_state:
+    st.session_state.processed_files = []
 
 uploaded_files = st.file_uploader(
     "Upload file PDF",
@@ -99,6 +101,9 @@ if st.session_state.uploaded_files and st.session_state.credentials:
     success, not_found = 0, 0
 
     for uploaded_file in st.session_state.uploaded_files:
+        if uploaded_file.name in st.session_state.processed_files:
+            continue  # skip kalau sudah pernah diproses
+
         input_pdf = uploaded_file.read()
         doc = fitz.open(stream=input_pdf, filetype="pdf")
         deleted = False
@@ -143,10 +148,16 @@ if st.session_state.uploaded_files and st.session_state.credentials:
             not_found += 1
             st.warning(f"⚠️ {uploaded_file.name} → teks 'Link Disposisi' tidak ditemukan (tetap diupload)")
 
+        # tandai file sudah diproses
+        st.session_state.processed_files.append(uploaded_file.name)
+
     st.markdown("### 📊 Ringkasan")
     st.markdown(f"- Total PDF diproses : **{len(st.session_state.uploaded_files)}**")
     st.markdown(f"- Berhasil dihapus   : **{success}**")
     st.markdown(f"- Dilewati (tidak ada): **{not_found}**")
+
+    # contoh: auto-reset setelah selesai (seolah tombol diklik)
+    # st.session_state.reset_trigger = True
 
 # -----------------------------
 # Step 3: Lihat daftar file di Shared Drive
@@ -176,10 +187,15 @@ if st.session_state.credentials:
             st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
 
 # -----------------------------
-# Step 4: Reset Upload
+# Step 4: Reset Upload (manual atau otomatis)
 # -----------------------------
 if st.button("❌ Reset Upload"):
-    st.session_state.uploader_key += 1  # reset uploader supaya kosong lagi
+    st.session_state.reset_trigger = True
+
+if st.session_state.get("reset_trigger", False):
+    st.session_state.uploader_key += 1
+    st.session_state.processed_files = []
     if "uploaded_files" in st.session_state:
-        del st.session_state["uploaded_files"]  # hapus jejak upload biar tidak diproses ulang
+        del st.session_state["uploaded_files"]
+    st.session_state.reset_trigger = False
     st.rerun()
