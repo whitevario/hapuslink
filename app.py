@@ -145,11 +145,13 @@ if st.session_state.credentials:
 
     st.write("### 📂 File terbaru di Shared Drive")
     results = service.files().list(
-        q=f"'{PARENT_FOLDER_ID}' in parents and mimeType='application/pdf'",
+        q=f"'{PARENT_FOLDER_ID}' in parents and mimeType='application/pdf' and trashed=false",
         orderBy="createdTime desc",
         pageSize=10,
         fields="files(id, name, webViewLink, createdTime)",
-        supportsAllDrives=True
+        supportsAllDrives=True,
+        includeItemsFromAllDrives=True,
+        corpora="drive"
     ).execute()
 
     items = results.get("files", [])
@@ -158,4 +160,3 @@ if st.session_state.credentials:
     else:
         for file in items:
             st.markdown(f"- [{file['name']}]({file['webViewLink']}) (dibuat {file['createdTime']})")
-
