@@ -166,6 +166,13 @@ if st.session_state.credentials:
             formatted_date = local_dt.strftime("%d %b %Y, %H:%M")
             st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
 
+# -----------------------------
+# Step 4: Tombol Reset
+# -----------------------------
+     if st.button("🔄 Reset ke Tampilan Awal"):
+         st.session_state.clear()
+         st.rerun()
+
 
 
 
