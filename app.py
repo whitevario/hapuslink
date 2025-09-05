@@ -70,7 +70,7 @@ if st.session_state.credentials is None:
         redirect_uri=REDIRECT_URI,
     )
     auth_url, _ = flow.authorization_url(prompt="consent")
-    st.markdown(f"👉 [Klik di sini untuk login Google]({auth_url})")
+    st.markdown(f"👉 [Klik di sini untuk login Google]({auth_url}) Gunakan email yayasan!!")
     st.stop()
 else:
     creds = Credentials.from_authorized_user_info(st.session_state.credentials)
@@ -222,3 +222,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
