@@ -1,5 +1,8 @@
 import streamlit as st
-import fitz  # PyMuPDF
+try:
+    import fitz  # alias ke pymupdf
+except ImportError:
+    import pymupdf as fitz
 import io
 import json
 
@@ -137,3 +140,4 @@ if st.session_state.credentials:
     else:
         for file in items:
             st.markdown(f"- [{file['name']}]({file['webViewLink']}) (dibuat {file['createdTime']})")
+
