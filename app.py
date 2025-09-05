@@ -61,7 +61,7 @@ if "code" in query_params and st.session_state.credentials is None:
         "client_secret": creds.client_secret,
         "token_uri": creds.token_uri,
     }
-    st.experimental_rerun()
+    st.rerun()
 
 if st.session_state.credentials is None:
     flow = Flow.from_client_config(
@@ -155,3 +155,4 @@ if st.session_state.credentials:
     else:
         for file in items:
             st.markdown(f"- [{file['name']}]({file['webViewLink']}) (dibuat {file['createdTime']})")
+
