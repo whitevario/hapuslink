@@ -1,6 +1,7 @@
 import streamlit as st
 import fitz  # PyMuPDF
 import io
+import json
 
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
@@ -10,13 +11,24 @@ from googleapiclient.http import MediaIoBaseUpload
 # -----------------------------
 # Konfigurasi Google OAuth
 # -----------------------------
-CLIENT_SECRETS_FILE = "oauth_yayasan.json"  # file OAuth dari Google Cloud
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
-# Folder Shared Drive Yayasan
+# Ambil konfigurasi dari st.secrets
+client_config = {
+    "web": {
+        "client_id": st.secrets["google_oauth"]["client_id"],
+        "project_id": st.secrets["google_oauth"]["project_id"],
+        "auth_uri": st.secrets["google_oauth"]["auth_uri"],
+        "token_uri": st.secrets["google_oauth"]["token_uri"],
+        "client_secret": st.secrets["google_oauth"]["client_secret"],
+        "redirect_uris": st.secrets["google_oauth"]["redirect_uris"],
+    }
+}
+
+# Ganti dengan Folder ID Shared Drive tujuan
 PARENT_FOLDER_ID = "0AOmec_wdt9z-Uk9PVA"
 
-# Redirect URI untuk Streamlit Cloud
+# Redirect URI sesuai app di Streamlit Cloud
 REDIRECT_URI = "https://hapuslink.streamlit.app/"
 
 st.set_page_config(page_title="Hapus Link Disposisi", page_icon="📝")
@@ -29,8 +41,8 @@ if "credentials" not in st.session_state:
     st.session_state.credentials = None
 
 if st.session_state.credentials is None:
-    flow = Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE,
+    flow = Flow.from_client_config(
+        client_config,
         scopes=SCOPES,
         redirect_uri=REDIRECT_URI,
     )
