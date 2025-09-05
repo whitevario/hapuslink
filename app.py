@@ -127,6 +127,14 @@ if st.session_state.credentials is None:
 else:
     creds = Credentials.from_authorized_user_info(st.session_state.credentials)
     st.success("✅ Sudah login ke Google Drive")
+    
+# -----------------------------
+# Mapping nama periode ke folder di Drive
+# -----------------------------
+periode_mapping = {
+    "Periode 1": "ANGGARAN PERIODE I",
+    "Periode 2": "ANGGARAN PERIODE II",
+}
 
 # -----------------------------
 # Step 2: Upload + Mapping Folder
@@ -189,7 +197,9 @@ if uploaded_files:
             pencairan_name = f"PENCAIRAN KASIR (DISPOSISI, BKK, KWITANSI) {sekolah_clean}"
             pencairan_obj = find_folder(service, sekolah_obj["id"], pencairan_name) if sekolah_obj else None
             bulan_obj = find_folder(service, pencairan_obj["id"], bulan) if pencairan_obj else None
-            periode_obj = find_folder(service, bulan_obj["id"], periode) if bulan_obj else None
+            periode_name = periode_mapping.get(periode, periode)
+            periode_obj = find_folder(service, bulan_obj["id"], periode_name) if bulan_obj else None
+
 
             if not all([perwakilan_obj, sekolah_obj, pencairan_obj, bulan_obj, periode_obj]):
                 st.error(f"❌ Folder tidak lengkap untuk {file.name} → {perwakilan}/{sekolah_full}/{pencairan_name}/{bulan}/{periode}")
@@ -238,3 +248,4 @@ if st.button("🔄 Reset Upload"):
     if "file_choices" in st.session_state:
         del st.session_state["file_choices"]
     st.rerun()
+
