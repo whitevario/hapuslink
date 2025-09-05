@@ -1,64 +1,64 @@
 import streamlit as st
 import fitz  # PyMuPDF
-import os
+import io
 
-st.title("📝 Hapus Hyperlink 'Link Disposisi' dari PDF")
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 
-# ------------------------------
-# PILIH FOLDER OUTPUT (TEXT INPUT)
-# ------------------------------
-default_folder = "pdf_output"
-OUTPUT_FOLDER = st.text_input("📂 Masukkan nama folder output:", default_folder)
+# -----------------------------
+# Konfigurasi Google OAuth
+# -----------------------------
+CLIENT_SECRETS_FILE = "oauth_yayasan.json"  # file OAuth dari Google Cloud
+SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
-if OUTPUT_FOLDER:
-    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+# Folder Shared Drive Yayasan
+PARENT_FOLDER_ID = "0AOmec_wdt9z-Uk9PVA"
 
-# Info jumlah file di folder output
-output_files = [f for f in os.listdir(OUTPUT_FOLDER) if f.lower().endswith(".pdf")]
-st.info(f"📂 Folder output aktif: `{OUTPUT_FOLDER}` (isi: {len(output_files)} file PDF)")
+# Redirect URI untuk Streamlit Cloud
+REDIRECT_URI = "https://hapuslink.streamlit.app/"
 
-# ------------------------------
-# INISIALISASI STATE
-# ------------------------------
-if "results" not in st.session_state:
-    st.session_state["results"] = []
+st.set_page_config(page_title="Hapus Link Disposisi", page_icon="📝")
+st.title("📝 Hapus Hyperlink 'Link Disposisi' dan Upload ke Shared Drive")
 
-# Tombol reset tampilan
-if st.button("🧹 Bersihkan Tampilan & Upload"):
-    st.session_state["results"] = []
-    st.success("✅ Tampilan upload & hasil diproses direset. File di folder output tetap aman.")
+# -----------------------------
+# Step 1: Autentikasi
+# -----------------------------
+if "credentials" not in st.session_state:
+    st.session_state.credentials = None
+
+if st.session_state.credentials is None:
+    flow = Flow.from_client_secrets_file(
+        CLIENT_SECRETS_FILE,
+        scopes=SCOPES,
+        redirect_uri=REDIRECT_URI,
+    )
+    auth_url, _ = flow.authorization_url(prompt="consent")
+    st.markdown(f"👉 [Klik di sini untuk login Google]({auth_url})")
     st.stop()
+else:
+    creds = Credentials.from_authorized_user_info(st.session_state.credentials)
+    st.success("✅ Sudah login ke Google Drive")
 
-# ------------------------------
-# FILE UPLOADER
-# ------------------------------
-uploaded_files = st.file_uploader(
-    "Upload file PDF", 
-    type="pdf", 
-    accept_multiple_files=True
-)
+# -----------------------------
+# Step 2: Upload File PDF
+# -----------------------------
+uploaded_files = st.file_uploader("Upload file PDF", type="pdf", accept_multiple_files=True)
 
-# ------------------------------
-# PROSES PDF
-# ------------------------------
-if uploaded_files and OUTPUT_FOLDER:
+if uploaded_files and st.session_state.credentials:
+    creds = Credentials.from_authorized_user_info(st.session_state.credentials)
+    service = build("drive", "v3", credentials=creds)
+
     target_text = "Link Disposisi".lower()
-
-    total_files = 0
-    success = 0
-    not_found = 0
+    success, not_found = 0, 0
 
     for uploaded_file in uploaded_files:
-        total_files += 1
         input_pdf = uploaded_file.read()
-
         doc = fitz.open(stream=input_pdf, filetype="pdf")
         deleted = False
 
-        for page_num, page in enumerate(doc, start=1):
-            if deleted:
-                break
-
+        for page in doc:
             words = page.get_text("words")
             annots = page.annots()
             if annots:
@@ -68,35 +68,60 @@ if uploaded_files and OUTPUT_FOLDER:
                         teks_link = " ".join(
                             w[4] for w in words if fitz.Rect(w[:4]).intersects(rect)
                         )
-                        if target_text == teks_link.lower().strip():
+                        if teks_link.lower().strip() == target_text:
                             page.delete_annot(annot)
                             page.draw_rect(rect, color=(1, 1, 1), fill=(1, 1, 1))
                             deleted = True
                             break
 
+        # Simpan hasil ke buffer
+        output_buffer = io.BytesIO()
+        doc.save(output_buffer)
+        doc.close()
+        output_buffer.seek(0)
+
+        # Upload ke Shared Drive
+        file_metadata = {
+            "name": uploaded_file.name,
+            "parents": [PARENT_FOLDER_ID]
+        }
+        media = MediaIoBaseUpload(output_buffer, mimetype="application/pdf")
+        service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="id"
+        ).execute()
+
         if deleted:
             success += 1
-            output_path = os.path.join(OUTPUT_FOLDER, uploaded_file.name)
-            doc.save(output_path)
-            st.session_state["results"].append(
-                f"✅ {uploaded_file.name} → berhasil diproses & disimpan ke `{OUTPUT_FOLDER}`"
-            )
+            st.success(f"✅ {uploaded_file.name} → berhasil diproses & diupload ke Shared Drive")
         else:
             not_found += 1
-            st.session_state["results"].append(
-                f"⚠️ {uploaded_file.name} → teks 'Link Disposisi' tidak ditemukan (dilewati)"
-            )
+            st.warning(f"⚠️ {uploaded_file.name} → teks 'Link Disposisi' tidak ditemukan (tetap diupload)")
 
-        doc.close()
+    st.markdown("### 📊 Ringkasan")
+    st.markdown(f"- Total PDF diproses : **{len(uploaded_files)}**")
+    st.markdown(f"- Berhasil dihapus   : **{success}**")
+    st.markdown(f"- Dilewati (tidak ada): **{not_found}**")
 
-    # Tambahkan ringkasan ke hasil
-    st.session_state["results"].append("### 📊 Ringkasan")
-    st.session_state["results"].append(f"- Total PDF diproses : **{total_files}**")
-    st.session_state["results"].append(f"- Berhasil dihapus   : **{success}**")
-    st.session_state["results"].append(f"- Dilewati (tidak ada): **{not_found}**")
+# -----------------------------
+# Step 3: Lihat daftar file di Shared Drive
+# -----------------------------
+if st.session_state.credentials:
+    creds = Credentials.from_authorized_user_info(st.session_state.credentials)
+    service = build("drive", "v3", credentials=creds)
 
-# ------------------------------
-# TAMPILKAN HASIL
-# ------------------------------
-for line in st.session_state["results"]:
-    st.markdown(line)
+    st.write("### 📂 File terbaru di Shared Drive")
+    results = service.files().list(
+        q=f"'{PARENT_FOLDER_ID}' in parents and mimeType='application/pdf'",
+        orderBy="createdTime desc",
+        pageSize=10,
+        fields="files(id, name, webViewLink, createdTime)"
+    ).execute()
+
+    items = results.get("files", [])
+    if not items:
+        st.info("Belum ada file di folder ini.")
+    else:
+        for file in items:
+            st.markdown(f"- [{file['name']}]({file['webViewLink']}) (dibuat {file['createdTime']})")
