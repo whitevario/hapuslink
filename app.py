@@ -4,7 +4,6 @@ import fitz  # PyMuPDF
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime, timezone, timedelta
 
-
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -83,14 +82,12 @@ else:
 if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
 
-if "uploader_key" not in st.session_state:
-    st.session_state.uploader_key = 0
-
 uploaded_files = st.file_uploader(
     "Upload file PDF",
     type="pdf",
     accept_multiple_files=True,
     key=st.session_state.uploader_key
+)
 
 if uploaded_files and st.session_state.credentials:
     creds = Credentials.from_authorized_user_info(st.session_state.credentials)
@@ -162,7 +159,7 @@ if st.session_state.credentials:
         pageSize=10,
         fields="files(id, name, webViewLink, createdTime)",
         supportsAllDrives=True,
-        includeItemsFromAllDrives=True,
+        includeItemsFromAllDrives=True
     ).execute()
 
     items = results.get("files", [])
@@ -171,7 +168,6 @@ if st.session_state.credentials:
     else:
         for idx, file in enumerate(items, start=1):
             created_dt = datetime.fromisoformat(file['createdTime'].replace("Z", "+00:00"))
-            # Tambahkan offset UTC+7 (WIB)
             local_dt = created_dt.astimezone(timezone(timedelta(hours=7)))
             formatted_date = local_dt.strftime("%d %b %Y, %H:%M")
             st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
@@ -180,17 +176,5 @@ if st.session_state.credentials:
 # Step 4: Reset Upload
 # -----------------------------
 if st.button("❌ Reset Upload"):
-    st.session_state.uploader_key += 1  # reset uploader
-    if "upload_log" in st.session_state:
-        st.session_state.upload_log = []  # bersihkan log
+    st.session_state.uploader_key += 1  # reset uploader supaya kosong lagi
     st.rerun()
-
-
-
-
-
-
-
-
-
-
