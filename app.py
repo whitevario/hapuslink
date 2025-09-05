@@ -112,7 +112,7 @@ def find_folder_contains(service, parent_id, keyword):
 if "credentials" not in st.session_state:
     st.session_state.credentials = None
 
-query_params = st.experimental_get_query_params()
+query_params = st.query_params()
 if "code" in query_params and st.session_state.credentials is None:
     code = query_params["code"][0]
     flow = Flow.from_client_config(
@@ -256,3 +256,4 @@ if st.button("🔄 Reset Upload"):
     if "file_choices" in st.session_state:
         del st.session_state["file_choices"]
     st.rerun()
+
