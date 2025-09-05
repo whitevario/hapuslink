@@ -169,9 +169,9 @@ if st.session_state.credentials:
 # -----------------------------
 # Step 4: Tombol Reset
 # -----------------------------
-     if st.button("🔄 Reset ke Tampilan Awal"):
-         st.session_state.clear()
-         st.rerun()
+if st.button("🔄 Reset ke Tampilan Awal"):
+    st.session_state.clear()
+    st.rerun()
 
 
 
