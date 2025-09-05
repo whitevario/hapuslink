@@ -207,6 +207,16 @@ if uploaded_files:
             pencairan_name = f"PENCAIRAN KASIR (DISPOSISI, BKK, KWITANSI) {sekolah_clean}"
             pencairan_obj = find_folder(service, sekolah_obj["id"], pencairan_name) if sekolah_obj else None
             bulan_obj = find_folder(service, pencairan_obj["id"], bulan) if pencairan_obj else None
+            if bulan_obj:
+                st.write(f"📂 Daftar folder di bawah {bulan_obj['name']}:")
+                children = service.files().list(
+                    q=f"'{bulan_obj['id']}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                    fields="files(id, name)",
+                    supportsAllDrives=True,
+                    includeItemsFromAllDrives=True
+                ).execute()
+                for f in children.get("files", []):
+                    st.write(f"- {f['name']}")
             periode_obj = find_folder_contains(service, bulan_obj["id"], periode) if bulan_obj else None
 
             if not all([perwakilan_obj, sekolah_obj, pencairan_obj, bulan_obj, periode_obj]):
@@ -256,5 +266,6 @@ if st.button("🔄 Reset Upload"):
     if "file_choices" in st.session_state:
         del st.session_state["file_choices"]
     st.rerun()
+
 
 
