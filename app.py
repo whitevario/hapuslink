@@ -167,11 +167,14 @@ if st.session_state.credentials:
             st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
 
 # -----------------------------
-# Step 4: Tombol Reset
+# Step 4: Reset Upload
 # -----------------------------
-if st.button("🔄 Reset ke Tampilan Awal"):
-    st.session_state.clear()
+if st.button("❌ Hapus Semua Upload"):
+    if "file_uploader" in st.session_state:
+        del st.session_state["file_uploader"]
     st.rerun()
+
+
 
 
 
