@@ -39,7 +39,6 @@ st.title("📝 Hapus Hyperlink 'Link Disposisi' dan Upload ke Shared Drive")
 if "credentials" not in st.session_state:
     st.session_state.credentials = None
 
-# cek apakah ada code callback dari Google
 query_params = st.experimental_get_query_params()
 if "code" in query_params and st.session_state.credentials is None:
     code = query_params["code"][0]
@@ -115,11 +114,14 @@ if uploaded_files and st.session_state.credentials:
         doc.close()
         output_buffer.seek(0)
 
-        # upload ke Shared Drive
+        # upload ke Shared Drive (perbaikan: supportsAllDrives=True)
         file_metadata = {"name": uploaded_file.name, "parents": [PARENT_FOLDER_ID]}
         media = MediaIoBaseUpload(output_buffer, mimetype="application/pdf")
         service.files().create(
-            body=file_metadata, media_body=media, fields="id"
+            body=file_metadata,
+            media_body=media,
+            fields="id",
+            supportsAllDrives=True  # <---- WAJIB untuk Shared Drive
         ).execute()
 
         if deleted:
@@ -146,7 +148,8 @@ if st.session_state.credentials:
         q=f"'{PARENT_FOLDER_ID}' in parents and mimeType='application/pdf'",
         orderBy="createdTime desc",
         pageSize=10,
-        fields="files(id, name, webViewLink, createdTime)"
+        fields="files(id, name, webViewLink, createdTime)",
+        supportsAllDrives=True  # <---- tambahkan juga di list
     ).execute()
 
     items = results.get("files", [])
@@ -155,4 +158,3 @@ if st.session_state.credentials:
     else:
         for file in items:
             st.markdown(f"- [{file['name']}]({file['webViewLink']}) (dibuat {file['createdTime']})")
-
