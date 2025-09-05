@@ -26,7 +26,7 @@ client_config = {
 PARENT_FOLDER_ID = "1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd"
 REDIRECT_URI = "https://hapuslink.streamlit.app/"
 
-st.set_page_config(page_title="Hapus Link Disposisi v4", page_icon="📝")
+st.set_page_config(page_title="Hapus Link Disposisi v5", page_icon="📝")
 st.title("📝 Hapus Hyperlink 'Link Disposisi' dan Upload ke Shared Drive")
 
 # -----------------------------
@@ -71,27 +71,9 @@ def parse_folder_file(file_path="daftar nama folder.txt"):
 folder_map, bulan_list, periode_list = parse_folder_file("daftar nama folder.txt")
 
 # -----------------------------
-# Helper: cari folder exact
-# -----------------------------
-def find_folder(service, parent_id, name):
-    query = (
-        f"'{parent_id}' in parents and "
-        f"name='{name}' and "
-        "mimeType='application/vnd.google-apps.folder' and trashed=false"
-    )
-    results = service.files().list(
-        q=query,
-        fields="files(id, name, webViewLink)",
-        supportsAllDrives=True,
-        includeItemsFromAllDrives=True
-    ).execute()
-    items = results.get("files", [])
-    return items[0] if items else None
-
-# -----------------------------
 # Helper: cari folder fuzzy (pakai contains)
 # -----------------------------
-def find_folder_contains(service, parent_id, keyword):
+def find_folder(service, parent_id, keyword):
     query = (
         f"'{parent_id}' in parents and "
         f"name contains '{keyword}' and "
@@ -201,27 +183,13 @@ if uploaded_files:
             sekolah_full = pilihan["sekolah"]
             sekolah_clean = sekolah_full.split(". ", 1)[-1]  # buang nomor
 
-            # cek folder bertingkat
+            # cek folder bertingkat (pakai fuzzy search)
             perwakilan_obj = find_folder(service, PARENT_FOLDER_ID, perwakilan)
             sekolah_obj = find_folder(service, perwakilan_obj["id"], sekolah_full) if perwakilan_obj else None
             pencairan_name = f"PENCAIRAN KASIR (DISPOSISI, BKK, KWITANSI) {sekolah_clean}"
             pencairan_obj = find_folder(service, sekolah_obj["id"], pencairan_name) if sekolah_obj else None
-            if pencairan_obj:
-                st.write(f"📂 Daftar folder di bawah {pencairan_obj['name']}:")
-                children = service.files().list(
-                    q=f"'{pencairan_obj['id']}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
-                    fields="files(id, name)",
-                    supportsAllDrives=True,
-                    includeItemsFromAllDrives=True
-                ).execute()
-                for f in children.get("files", []):
-                    st.write(f"- {f['name']}")
-
-                bulan_obj = find_folder(service, pencairan_obj["id"], bulan)
-            else:
-                bulan_obj = None
-
-            periode_obj = find_folder_contains(service, bulan_obj["id"], periode) if bulan_obj else None
+            bulan_obj = find_folder(service, pencairan_obj["id"], bulan) if pencairan_obj else None
+            periode_obj = find_folder(service, bulan_obj["id"], periode) if bulan_obj else None
 
             if not all([perwakilan_obj, sekolah_obj, pencairan_obj, bulan_obj, periode_obj]):
                 st.error(f"❌ Folder tidak lengkap untuk {file.name} → {perwakilan}/{sekolah_full}/{pencairan_name}/{bulan}/{periode}")
@@ -270,7 +238,3 @@ if st.button("🔄 Reset Upload"):
     if "file_choices" in st.session_state:
         del st.session_state["file_choices"]
     st.rerun()
-
-
-
-
