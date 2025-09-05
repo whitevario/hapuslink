@@ -206,9 +206,7 @@ if st.session_state.get("reset_trigger", False):
 # ---------- URL folder di Google Drive / Shared Drive ----------
 folder_url = "https://drive.google.com/drive/folders/1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd"
 
-st.markdown(
-    f"""
-    <a href="{folder_url}" target="_blank">
+st.markdown(f"""<a href="{folder_url}" target="_blank">
         <button style="
             background-color: #4CAF50; 
             color: white; 
@@ -247,6 +245,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
