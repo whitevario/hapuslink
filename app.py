@@ -102,7 +102,7 @@ if uploaded_files and st.session_state.credentials:
                         teks_link = " ".join(
                             w[4] for w in words if fitz.Rect(w[:4]).intersects(rect)
                         )
-                        if teks_link.lower().strip() == target_text:
+                        if "link disposisi" in teks_link.lower():
                             page.delete_annot(annot)
                             page.draw_rect(rect, color=(1, 1, 1), fill=(1, 1, 1))
                             deleted = True
@@ -158,3 +158,4 @@ if st.session_state.credentials:
     else:
         for file in items:
             st.markdown(f"- [{file['name']}]({file['webViewLink']}) (dibuat {file['createdTime']})")
+
