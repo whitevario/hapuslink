@@ -89,13 +89,16 @@ uploaded_files = st.file_uploader(
     key=st.session_state.uploader_key
 )
 
-if uploaded_files and st.session_state.credentials:
+# simpan uploaded_files ke session_state supaya bisa dihapus saat reset
+st.session_state.uploaded_files = uploaded_files
+
+if st.session_state.uploaded_files and st.session_state.credentials:
     creds = Credentials.from_authorized_user_info(st.session_state.credentials)
     service = build("drive", "v3", credentials=creds)
 
     success, not_found = 0, 0
 
-    for uploaded_file in uploaded_files:
+    for uploaded_file in st.session_state.uploaded_files:
         input_pdf = uploaded_file.read()
         doc = fitz.open(stream=input_pdf, filetype="pdf")
         deleted = False
@@ -141,7 +144,7 @@ if uploaded_files and st.session_state.credentials:
             st.warning(f"⚠️ {uploaded_file.name} → teks 'Link Disposisi' tidak ditemukan (tetap diupload)")
 
     st.markdown("### 📊 Ringkasan")
-    st.markdown(f"- Total PDF diproses : **{len(uploaded_files)}**")
+    st.markdown(f"- Total PDF diproses : **{len(st.session_state.uploaded_files)}**")
     st.markdown(f"- Berhasil dihapus   : **{success}**")
     st.markdown(f"- Dilewati (tidak ada): **{not_found}**")
 
@@ -177,4 +180,6 @@ if st.session_state.credentials:
 # -----------------------------
 if st.button("❌ Reset Upload"):
     st.session_state.uploader_key += 1  # reset uploader supaya kosong lagi
+    if "uploaded_files" in st.session_state:
+        del st.session_state["uploaded_files"]  # hapus jejak upload biar tidak diproses ulang
     st.rerun()
