@@ -169,7 +169,7 @@ if st.session_state.credentials:
     creds = Credentials.from_authorized_user_info(st.session_state.credentials)
     service = build("drive", "v3", credentials=creds)
 
-    st.write("### 📂 File terbaru di Shared Drive")
+    st.write("### 📂 File terbaru di Folder TEMPAT HAPUS LINK DISPOSISI")
     results = service.files().list(
         q=f"'{PARENT_FOLDER_ID}' in parents and mimeType='application/pdf' and trashed=false",
         orderBy="createdTime desc",
@@ -227,6 +227,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
