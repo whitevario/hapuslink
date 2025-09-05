@@ -6,9 +6,6 @@ from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
-# -----------------------------
-# Konfigurasi Google OAuth
-# -----------------------------
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
 client_config = {
@@ -22,15 +19,14 @@ client_config = {
     }
 }
 
-# Root Shared Drive
 PARENT_FOLDER_ID = "1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd"
 REDIRECT_URI = "https://hapuslink.streamlit.app/"
 
-st.set_page_config(page_title="Hapus Link Disposisi v5", page_icon="📝")
-st.title("📝 Hapus Hyperlink 'Link Disposisi' dan Upload ke Shared Drive")
+st.set_page_config(page_title="Hapus Link Disposisi v5 Debug", page_icon="🐞")
+st.title("🐞 Debug Hapus Link Disposisi")
 
 # -----------------------------
-# Helper: baca file daftar nama folder
+# Parse daftar nama folder
 # -----------------------------
 def parse_folder_file(file_path="daftar nama folder.txt"):
     with open(file_path, "r", encoding="utf-8") as f:
@@ -71,9 +67,25 @@ def parse_folder_file(file_path="daftar nama folder.txt"):
 folder_map, bulan_list, periode_list = parse_folder_file("daftar nama folder.txt")
 
 # -----------------------------
-# Helper: cari folder fuzzy (pakai contains)
+# Helper: fuzzy search + debug list
 # -----------------------------
-def find_folder(service, parent_id, keyword):
+def list_children(service, parent_id, title="Isi Folder"):
+    children = service.files().list(
+        q=f"'{parent_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+        fields="files(id, name)",
+        supportsAllDrives=True,
+        includeItemsFromAllDrives=True
+    ).execute()
+    files = children.get("files", [])
+    st.write(f"📂 {title}:")
+    for f in files:
+        st.write(f"- {f['name']}")
+    return files
+
+def find_folder(service, parent_id, keyword, title="Cari Folder"):
+    if not parent_id:
+        return None
+    list_children(service, parent_id, f"Isi dari {title}")
     query = (
         f"'{parent_id}' in parents and "
         f"name contains '{keyword}' and "
@@ -129,7 +141,7 @@ else:
     st.success("✅ Sudah login ke Google Drive")
 
 # -----------------------------
-# Step 2: Upload + Mapping Folder
+# Step 2: Upload
 # -----------------------------
 bulan = st.selectbox("Pilih Bulan", bulan_list)
 periode = st.radio("Pilih Periode", periode_list)
@@ -140,101 +152,25 @@ uploaded_files = st.file_uploader(
     accept_multiple_files=True
 )
 
-if uploaded_files:
-    st.write("### Atur Perwakilan & Sekolah untuk tiap file:")
-
-    if "file_choices" not in st.session_state:
-        st.session_state.file_choices = {}
+if uploaded_files and st.button("🚀 Proses & Debug Upload"):
+    creds = Credentials.from_authorized_user_info(st.session_state.credentials)
+    service = build("drive", "v3", credentials=creds)
 
     for file in uploaded_files:
-        if file.name not in st.session_state.file_choices:
-            first_perwakilan = list(folder_map.keys())[0]
-            st.session_state.file_choices[file.name] = {
-                "perwakilan": first_perwakilan,
-                "sekolah": folder_map[first_perwakilan][0]
-            }
+        st.write(f"### 🔎 Debug {file.name}")
+        # mapping pilihan contoh: ambil default saja
+        perwakilan = list(folder_map.keys())[0]
+        sekolah_full = folder_map[perwakilan][0]
+        sekolah_clean = sekolah_full.split(". ", 1)[-1]
 
-        pilihan = st.session_state.file_choices[file.name]
+        perwakilan_obj = find_folder(service, PARENT_FOLDER_ID, perwakilan, "Root Drive")
+        sekolah_obj = find_folder(service, perwakilan_obj["id"], sekolah_full, perwakilan) if perwakilan_obj else None
+        pencairan_name = f"PENCAIRAN KASIR (DISPOSISI, BKK, KWITANSI) {sekolah_clean}"
+        pencairan_obj = find_folder(service, sekolah_obj["id"], pencairan_name, sekolah_full) if sekolah_obj else None
+        bulan_obj = find_folder(service, pencairan_obj["id"], bulan, pencairan_name) if pencairan_obj else None
+        periode_obj = find_folder(service, bulan_obj["id"], periode, bulan) if bulan_obj else None
 
-        col1, col2 = st.columns(2)
-        with col1:
-            pilihan["perwakilan"] = st.selectbox(
-                f"Perwakilan untuk {file.name}",
-                list(folder_map.keys()),
-                index=list(folder_map.keys()).index(pilihan["perwakilan"]),
-                key=f"perwakilan_{file.name}"
-            )
-        with col2:
-            pilihan["sekolah"] = st.selectbox(
-                f"Sekolah untuk {file.name}",
-                folder_map[pilihan["perwakilan"]],
-                index=folder_map[pilihan["perwakilan"]].index(pilihan["sekolah"]) if pilihan["sekolah"] in folder_map[pilihan["perwakilan"]] else 0,
-                key=f"sekolah_{file.name}"
-            )
-
-    if st.button("🚀 Proses & Upload Semua"):
-        creds = Credentials.from_authorized_user_info(st.session_state.credentials)
-        service = build("drive", "v3", credentials=creds)
-
-        uploaded_folders = set()
-        for file in uploaded_files:
-            pilihan = st.session_state.file_choices[file.name]
-            perwakilan = pilihan["perwakilan"]
-            sekolah_full = pilihan["sekolah"]
-            sekolah_clean = sekolah_full.split(". ", 1)[-1]  # buang nomor
-
-            # cek folder bertingkat (pakai fuzzy search)
-            perwakilan_obj = find_folder(service, PARENT_FOLDER_ID, perwakilan)
-            sekolah_obj = find_folder(service, perwakilan_obj["id"], sekolah_full) if perwakilan_obj else None
-            pencairan_name = f"PENCAIRAN KASIR (DISPOSISI, BKK, KWITANSI) {sekolah_clean}"
-            pencairan_obj = find_folder(service, sekolah_obj["id"], pencairan_name) if sekolah_obj else None
-            bulan_obj = find_folder(service, pencairan_obj["id"], bulan) if pencairan_obj else None
-            periode_obj = find_folder(service, bulan_obj["id"], periode) if bulan_obj else None
-
-            if not all([perwakilan_obj, sekolah_obj, pencairan_obj, bulan_obj, periode_obj]):
-                st.error(f"❌ Folder tidak lengkap untuk {file.name} → {perwakilan}/{sekolah_full}/{pencairan_name}/{bulan}/{periode}")
-                continue
-
-            # hapus link disposisi
-            input_pdf = file.read()
-            doc = fitz.open(stream=input_pdf, filetype="pdf")
-            for page in doc:
-                rects = page.search_for("Link Disposisi", quads=False)
-                for rect in rects:
-                    page.add_redact_annot(rect, fill=(1, 1, 1))
-                    page.apply_redactions()
-                    annots = page.annots()
-                    if annots:
-                        for annot in annots:
-                            if rect.intersects(annot.rect):
-                                page.delete_annot(annot)
-
-            output_buffer = io.BytesIO()
-            doc.save(output_buffer)
-            doc.close()
-            output_buffer.seek(0)
-
-            # upload ke Drive
-            file_metadata = {"name": file.name, "parents": [periode_obj["id"]]}
-            media = MediaIoBaseUpload(output_buffer, mimetype="application/pdf")
-            service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields="id",
-                supportsAllDrives=True
-            ).execute()
-
-            st.success(f"✅ {file.name} → berhasil diupload ke {perwakilan}/{sekolah_full}/{pencairan_name}/{bulan}/{periode_obj['name']}")
-            uploaded_folders.add(periode_obj["webViewLink"])
-
-        st.markdown("### 📂 Folder Tujuan")
-        for link in uploaded_folders:
-            st.markdown(f"- 🔗 [Buka Folder Tujuan]({link})")
-
-# -----------------------------
-# Reset Upload
-# -----------------------------
-if st.button("🔄 Reset Upload"):
-    if "file_choices" in st.session_state:
-        del st.session_state["file_choices"]
-    st.rerun()
+        if not all([perwakilan_obj, sekolah_obj, pencairan_obj, bulan_obj, periode_obj]):
+            st.error("❌ Masih ada folder yang tidak ditemukan")
+        else:
+            st.success("✅ Semua folder ketemu!")
