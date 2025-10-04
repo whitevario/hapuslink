@@ -79,6 +79,15 @@ else:
     creds = Credentials.from_authorized_user_info(st.session_state.credentials)
     st.success("✅ Sudah login ke Google Drive")
 
+if st.button("🔍 Lihat daftar Shared Drive"):
+    creds = Credentials.from_authorized_user_info(st.session_state.credentials)
+    service = build("drive", "v3", credentials=creds)
+
+    drives = service.drives().list(pageSize=10).execute()
+    for drive in drives.get("drives", []):
+        st.write(f"📂 {drive['name']} → ID: {drive['id']}")
+
+
 # -----------------------------
 # Step 2: Upload File PDF
 # -----------------------------
@@ -105,7 +114,8 @@ if st.session_state.uploaded_files and st.session_state.credentials:
 
     for uploaded_file in st.session_state.uploaded_files:
         if uploaded_file.name in st.session_state.processed_files:
-            continue  # skip kalau sudah pernah diproses
+            continue  
+       # skip kalau sudah pernah diproses
 
         input_pdf = uploaded_file.read()
         doc = fitz.open(stream=input_pdf, filetype="pdf")
@@ -247,6 +257,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
