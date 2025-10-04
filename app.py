@@ -173,23 +173,23 @@ if st.session_state.credentials:
     FOLDER_ID = "1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd"
 
     try:
-        folder = service.files().get(
+        # cari dulu driveId dari folder
+        folder_info = service.files().get(
             fileId=FOLDER_ID,
-            fields="id, name, driveId, parents",
+            fields="id, name, parents, driveId",
             supportsAllDrives=True
         ).execute()
 
-        st.write("### 📂 Isi Folder:", folder["name"])
+        drive_id = folder_info.get("driveId")
+        st.write("### 📂 File terbaru di Folder", folder_info["name"].upper())
 
-        drive_id = folder.get("driveId", None)
-        corpora = "drive" if drive_id else "user"
-
+        # ambil daftar file di folder
         results = service.files().list(
             q=f"'{FOLDER_ID}' in parents and mimeType='application/pdf' and trashed=false",
             fields="files(id, name, webViewLink, createdTime)",
             includeItemsFromAllDrives=True,
             supportsAllDrives=True,
-            corpora=corpora,
+            corpora="drive",
             driveId=drive_id,
             orderBy="createdTime desc",
             pageSize=10
@@ -206,7 +206,8 @@ if st.session_state.credentials:
                 st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
 
     except Exception as e:
-        st.error(f"Error saat akses folder: {e}")
+        st.error(f"Error saat akses folder Shared Drive: {e}")
+
 
 # -----------------------------
 
@@ -268,6 +269,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
