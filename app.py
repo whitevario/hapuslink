@@ -172,8 +172,6 @@ if st.session_state.credentials:
     st.write("### 📂 File terbaru di Folder TEMPAT HAPUS LINK DISPOSISI")
     results = service.files().list(
         q=f"'{PARENT_FOLDER_ID}' in parents and mimeType='application/pdf' and trashed=false",
-        corpora="drive",   # 🔑 ganti lingkup pencarian jadi Shared Drive tertentu
-        driveId="1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd",  # ID Shared Drive
         includeItemsFromAllDrives=True,
         supportsAllDrives=True,
         orderBy="createdTime desc",
@@ -249,6 +247,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
