@@ -79,15 +79,6 @@ else:
     creds = Credentials.from_authorized_user_info(st.session_state.credentials)
     st.success("✅ Sudah login ke Google Drive")
 
-if st.button("🔍 Lihat daftar Shared Drive"):
-    creds = Credentials.from_authorized_user_info(st.session_state.credentials)
-    service = build("drive", "v3", credentials=creds)
-
-    drives = service.drives().list(pageSize=10).execute()
-    for drive in drives.get("drives", []):
-        st.write(f"📂 {drive['name']} → ID: {drive['id']}")
-
-
 # -----------------------------
 # Step 2: Upload File PDF
 # -----------------------------
@@ -179,25 +170,45 @@ if st.session_state.credentials:
     creds = Credentials.from_authorized_user_info(st.session_state.credentials)
     service = build("drive", "v3", credentials=creds)
 
-    st.write("### 📂 File terbaru di Folder TEMPAT HAPUS LINK DISPOSISI")
-    results = service.files().list(
-        q=f"'{PARENT_FOLDER_ID}' in parents and mimeType='application/pdf' and trashed=false",
-        includeItemsFromAllDrives=True,
-        supportsAllDrives=True,
-        orderBy="createdTime desc",
-        pageSize=10,
-        fields="files(id, name, webViewLink, createdTime)"
-    ).execute()
+    FOLDER_ID = "1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd"
 
-    items = results.get("files", [])
-    if not items:
-        st.info("Belum ada file di folder ini.")
-    else:
-        for idx, file in enumerate(items, start=1):
-            created_dt = datetime.fromisoformat(file['createdTime'].replace("Z", "+00:00"))
-            local_dt = created_dt.astimezone(timezone(timedelta(hours=7)))
-            formatted_date = local_dt.strftime("%d %b %Y, %H:%M")
-            st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
+    try:
+        folder = service.files().get(
+            fileId=FOLDER_ID,
+            fields="id, name, driveId, parents",
+            supportsAllDrives=True
+        ).execute()
+
+        st.write("### 📂 Isi Folder:", folder["name"])
+
+        drive_id = folder.get("driveId", None)
+        corpora = "drive" if drive_id else "user"
+
+        results = service.files().list(
+            q=f"'{FOLDER_ID}' in parents and mimeType='application/pdf' and trashed=false",
+            fields="files(id, name, webViewLink, createdTime)",
+            includeItemsFromAllDrives=True,
+            supportsAllDrives=True,
+            corpora=corpora,
+            driveId=drive_id,
+            orderBy="createdTime desc",
+            pageSize=10
+        ).execute()
+
+        items = results.get("files", [])
+        if not items:
+            st.info("Belum ada file di folder ini.")
+        else:
+            for idx, file in enumerate(items, start=1):
+                created_dt = datetime.fromisoformat(file['createdTime'].replace("Z", "+00:00"))
+                local_dt = created_dt.astimezone(timezone(timedelta(hours=7)))
+                formatted_date = local_dt.strftime("%d %b %Y, %H:%M")
+                st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
+
+    except Exception as e:
+        st.error(f"Error saat akses folder: {e}")
+
+# -----------------------------
 
 # -----------------------------
 # Step 4: Reset Upload (manual atau otomatis)
@@ -257,6 +268,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
