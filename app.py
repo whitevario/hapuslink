@@ -183,8 +183,8 @@ if st.session_state.get("reset_trigger", False):
     st.rerun()
 
 # ---------- URL folder di Google Drive / Shared Drive ----------
-folder_url = "https://drive.google.com/drive/folders/1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd"
-
+folder_id = "1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd"
+folder_url = "https://drive.google.com/drive/folders/{folder_id}?usp=sharing&pli=1"
 st.markdown(
     f'''<a href="{folder_url}" target="_blank">
         <button style="
@@ -226,6 +226,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
