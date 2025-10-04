@@ -166,50 +166,7 @@ if st.session_state.uploaded_files and st.session_state.credentials:
 # -----------------------------
 # Step 3: Lihat daftar file di Shared Drive
 # -----------------------------
-if st.session_state.credentials:
-    creds = Credentials.from_authorized_user_info(st.session_state.credentials)
-    service = build("drive", "v3", credentials=creds)
 
-    FOLDER_ID = "1H87XOKnCFfBPW70-YUwSCF5SdPldhzHd"
-
-    try:
-        # cari dulu driveId dari folder
-        folder_info = service.files().get(
-            fileId=FOLDER_ID,
-            fields="id, name, parents, driveId",
-            supportsAllDrives=True
-        ).execute()
-
-        drive_id = folder_info.get("driveId")
-        st.write("### 📂 File terbaru di Folder", folder_info["name"].upper())
-
-        # ambil daftar file di folder
-        results = service.files().list(
-            q=f"'{FOLDER_ID}' in parents and mimeType='application/pdf' and trashed=false",
-            fields="files(id, name, webViewLink, createdTime)",
-            includeItemsFromAllDrives=True,
-            supportsAllDrives=True,
-            corpora="drive",
-            driveId=drive_id,
-            orderBy="createdTime desc",
-            pageSize=10
-        ).execute()
-
-        items = results.get("files", [])
-        if not items:
-            st.info("Belum ada file di folder ini.")
-        else:
-            for idx, file in enumerate(items, start=1):
-                created_dt = datetime.fromisoformat(file['createdTime'].replace("Z", "+00:00"))
-                local_dt = created_dt.astimezone(timezone(timedelta(hours=7)))
-                formatted_date = local_dt.strftime("%d %b %Y, %H:%M")
-                st.markdown(f"{idx}. 📄 [{file['name']}]({file['webViewLink']}) (dibuat {formatted_date})")
-
-    except Exception as e:
-        st.error(f"Error saat akses folder Shared Drive: {e}")
-
-
-# -----------------------------
 
 # -----------------------------
 # Step 4: Reset Upload (manual atau otomatis)
@@ -269,6 +226,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
